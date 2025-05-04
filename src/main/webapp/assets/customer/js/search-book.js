@@ -33,12 +33,12 @@ $(document).ready(() => {
                             <div class="cr-product-card" data-book-id="${book.id}">
                                 <div class="cr-product-image">
                                     <div class="cr-image-inner image-zoom"
-								         style="--url: url(${book.imageUrl.replace(/\\/g, '/')});
+								         style="--url: url(${contextPath}${book.imageUrl.replace(/\\/g, '/')});
 								            --zoom-x: 0%;
 								            --zoom-y: 0%;
 								            --display: none;">
-                                    <img src="${book.imageUrl}" alt="${book.title}">
-                                    <img role="presentation" alt="" src="http://localhost:8080/assets/owner/img/book/TrenDuongBang/image1.jpg" class="zoomImg" style="position: absolute; top: -2141.2px; left: -1465.35px; opacity: 0; width: 2560px; height: 2560px; border: none; max-width: none; max-height: none;"></div>
+                                    <img src="${contextPath}${book.imageUrl}" alt="${book.title}">
+                                    <img role="presentation" alt="" src="${contextPath}${book.imageUrl.replace(/\\/g, '/')}" class="zoomImg" style="position: absolute; top: -2141.2px; left: -1465.35px; opacity: 0; width: 2560px; height: 2560px; border: none; max-width: none; max-height: none;"></div>
                                     <div class="cr-side-view">
                                         <a class="model-oraganic-product" data-bs-toggle="modal" href="#quickview-${book.id}" role="button">
                                             <i class="ri-eye-line"></i>

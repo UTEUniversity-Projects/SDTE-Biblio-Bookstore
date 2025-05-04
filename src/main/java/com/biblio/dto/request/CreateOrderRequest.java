@@ -15,7 +15,6 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CreateOrderRequest {
-
     private CustomerDetailResponse customer;
     private List<CheckoutItemRequest> items;
     private Long addressId;
