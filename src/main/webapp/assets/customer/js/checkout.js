@@ -128,7 +128,7 @@ $(document).ready(() => {
 				duration: 3000
 			});
 		}
-	}
+	};
 
 	const applyVoucher = () => {
 		const voucherCode = voucherInput.value.trim();
@@ -142,7 +142,7 @@ $(document).ready(() => {
 				duration: 3000
 			});
 		}
-	}
+	};
 
 	applyFreeshipButton.addEventListener('click', applyFreeship);
 
@@ -170,7 +170,6 @@ $(document).ready(() => {
 		ACCOUNT_NO: '8383352888888',
 		ACCOUNT_NAME: 'TRANG KIM LOI'
 	};
-
 
 	let timeOut;
 	let interval;
@@ -209,6 +208,20 @@ $(document).ready(() => {
 		return products;
 	};
 
+	function formatVnpPayDate(raw) {
+		if (!raw || raw.length !== 14) return null;
+
+		const year = raw.slice(0, 4);
+		const month = raw.slice(4, 6);
+		const day = raw.slice(6, 8);
+		const hour = raw.slice(8, 10);
+		const minute = raw.slice(10, 12);
+		const second = raw.slice(12, 14);
+
+		return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
+	}
+
+
 	btnOrder.addEventListener('click', () => {
 		if ($('.payment-type').text().trim().length === 0) {
 			toast({
@@ -218,115 +231,199 @@ $(document).ready(() => {
 			return;
 		}
 
+		const params = new URLSearchParams(window.location.search);
+		const code = params.get("vnp_TransactionStatus") || params.get("vnp_ResponseCode");
+		console.log(code);
+		if (code === "00") {
+			const amount = parseInt(params.get("vnp_Amount")) / 100;
+			const transactionNo = params.get("vnp_TransactionNo");
+			const bankName = params.get("vnp_BankCode");
+			const createdAt = formatVnpPayDate(params.get("vnp_PayDate"));
+			const bankAccountNumber = localStorage.getItem("user_bank_account") || "unknown";
 
-		const text = `CHUYEN KHOAN DON HANG`;
-		const amount = $("#price-total")[0].dataset.price;
+			const order = {
+				addressId: $('.address')[0].dataset.addressId,
+				note: $('#note').val().trim(),
+				paymentType: $('.payment-type')[0].dataset.paymentType,
+				items: getProductInfor(),
+				amount: amount,
+				bankAccountNumber: bankAccountNumber,
+				bankName: bankName,
+				transactionId: transactionNo,
+				createdAt: createdAt,
+				shippingFee: parseInt($('#price-freeship-amount')[0].dataset.price)
+			};
 
-		checkout.classList.add('active');
-		checkoutQR.src = '';
-		const qrImageSrc = generateQR(amount, text);
-		$('.checkout-loading').removeClass('hidden');
-		checkoutQR.onload = () => $('.checkout-loading').addClass('hidden');
-		checkoutQR.src = qrImageSrc;
-		isSuccess = false;
-
-		timeOut = setTimeout(() => {
-			interval = setInterval(() => {
-				checkPaid(amount, text);
-			}, 3000);
-		}, 3000);
-
-	});
-
-	overlay.addEventListener('click', () => {
-		checkout.classList.remove('active');
-		if (timeOut) {
-			clearTimeout(timeOut);
-			clearInterval(interval);
-		}
-		isSuccess = false;
-	});
-
-	async function checkPaid (amount, text) {
-		if (!isSuccess) {
-			try {
-				const response = await fetch('https://script.google.com/macros/s/AKfycbzDcjdyyF8jBuq4FVdme-76-x8DGrtMGuL4vuJlQcf2h_XeyJ3bMdDeilEGBhql9039YA/exec');
-				const data = await response.json();
-				const lastPaid = data.data[data.data.length - 1];
-				const lastPrice = lastPaid['Giá trị'];
-				const lastContent = lastPaid['Mô tả'];
-				const bankAccountNumber = lastPaid['Số tài khoản đối ứng'];
-				const bankName = lastPaid['Tên NH tài khoản đối ứng'];
-				const transactionId = lastPaid['Mã GD'];
-				const createdAt = lastPaid['Ngày diễn ra'];
-				if (lastPrice >= amount && lastContent.includes(text)) {
-					isSuccess = true;
-					clearTimeout(timeOut);
-					clearInterval(interval);
-					const data = {
-						addressId: $('.address')[0].dataset.addressId,
-						note: $('#note').val().trim(),
-						paymentType: $('.payment-type')[0].dataset.paymentType,
-						items: getProductInfor(),
-						amount: amount,
-						bankAccountNumber: bankAccountNumber,
-						bankName: bankName,
-						transactionId: transactionId,
-						createdAt: createdAt,
-						shippingFee: parseInt($('#price-freeship-amount')[0].dataset.price)
-					};
-
-					$.ajax({
-						url: `${contextPath}/api/customer/order/create`,
-						type: 'POST',
-						contentType: 'application/json',
-						data: JSON.stringify(data),
-						success: function (response) {
-							toast({
-								title: 'Thanh toán',
-								message: 'Thanh toán thành công',
-								type: 'success',
-								duration: 2000
-							});
-
-							setTimeout(() => {
-								window.location.href = `${contextPath}/order-detail?orderId=${response.orderId}`;
-
-								const notificationData = {
-									title: 'Đơn hàng mới',
-									content: `Có một đơn hàng mới đang chờ xác nhận. order id là ${response.orderId}`,
-									type: 'ORDER',
-									hyperLink: `/staff/order-details?id=${response.orderId}`
-								};
-
-								$.ajax({
-									url: `${contextPath}/api/staff/notification/add`,
-									type: 'POST',
-									contentType: 'application/json',
-									data: JSON.stringify(notificationData),
-									success: function (notificationResponse) {
-										console.log('Thông báo đã được thêm thành công:', notificationResponse);
-									},
-									error: function (xhr, error) {
-										console.log('Lỗi khi thêm thông báo:', error);
-									}
-								});
-							}, 1000);
-						},
-						error: function (xhr, error) {
-							console.log(error);
-						}
-					});
-
-
-				} else {
+			$.ajax({
+				url: `${contextPath}/api/customer/order/create`,
+				type: 'POST',
+				contentType: 'application/json',
+				data: JSON.stringify(order),
+				success: function (response) {
 					toast({
-						message: 'Đang chờ thanh toán'
+						title: 'Đặt hàng',
+						message: 'Đặt hàng thành công',
+						type: 'success',
+						duration: 2000
 					});
+
+					setTimeout(() => {
+						window.location.href = `${contextPath}/order-detail?orderId=${response.orderId}`;
+
+						const notificationData = {
+							title: 'Đơn hàng mới',
+							content: `Có một đơn hàng mới đang chờ xác nhận. order id là ${response.orderId}`,
+							type: 'ORDER',
+							hyperLink: `/staff/order-details?id=${response.orderId}`
+						};
+
+						$.ajax({
+							url: `${contextPath}/api/staff/notification/add`,
+							type: 'POST',
+							contentType: 'application/json',
+							data: JSON.stringify(notificationData),
+							success: function (notificationResponse) {
+								console.log('Thông báo đã được thêm thành công:', notificationResponse);
+							},
+							error: function (xhr, error) {
+								console.log('Lỗi khi thêm thông báo:', error);
+							}
+						});
+					}, 1000);
+				},
+				error: function (xhr, error) {
+					console.log(error);
 				}
-			} catch (error) {
-				console.log(error);
-			}
+			});
+			return;
 		}
-	}
+
+		const amount = $('#price-total')[0].dataset.price;
+
+		fetch(`${contextPath}/api/customer/payment/create`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({
+				orderId: "123456",
+				amount: parseInt(amount),
+				bankCode: "NCB",
+				language: "vn"
+			})
+		})
+			.then(res => res.json())
+			.then(data => {
+				if (data.code === "00") {
+					window.location.href = data.data;
+				}
+			});
+
+		//checkout.classList.add('active');
+		//checkoutQR.src = '';
+		//const qrImageSrc = generateQR(amount, text);
+		//$('.checkout-loading').removeClass('hidden');
+		//checkoutQR.onload = () => $('.checkout-loading').addClass('hidden');
+		//checkoutQR.src = qrImageSrc;
+		//isSuccess = false;
+		//
+		//timeOut = setTimeout(() => {
+		//	interval = setInterval(() => {
+		//		checkPaid(amount, text);
+		//	}, 3000);
+		//}, 3000);
+
+	});
+
+	//overlay.addEventListener('click', () => {
+	//	checkout.classList.remove('active');
+	//	if (timeOut) {
+	//		clearTimeout(timeOut);
+	//		clearInterval(interval);
+	//	}
+	//	isSuccess = false;
+	//});
+
+	//async function checkPaid (amount, text) {
+	//	if (!isSuccess) {
+	//		try {
+	//			const response = await fetch('https://script.google.com/macros/s/AKfycbzDcjdyyF8jBuq4FVdme-76-x8DGrtMGuL4vuJlQcf2h_XeyJ3bMdDeilEGBhql9039YA/exec');
+	//			const data = await response.json();
+	//			const lastPaid = data.data[data.data.length - 1];
+	//			const lastPrice = lastPaid['Giá trị'];
+	//			const lastContent = lastPaid['Mô tả'];
+	//			const bankAccountNumber = lastPaid['Số tài khoản đối ứng'];
+	//			const bankName = lastPaid['Tên NH tài khoản đối ứng'];
+	//			const transactionId = lastPaid['Mã GD'];
+	//			const createdAt = lastPaid['Ngày diễn ra'];
+	//			if (lastPrice >= amount && lastContent.includes(text)) {
+	//				isSuccess = true;
+	//				clearTimeout(timeOut);
+	//				clearInterval(interval);
+	//				const data = {
+	//					addressId: $('.address')[0].dataset.addressId,
+	//					note: $('#note').val().trim(),
+	//					paymentType: $('.payment-type')[0].dataset.paymentType,
+	//					items: getProductInfor(),
+	//					amount: amount,
+	//					bankAccountNumber: bankAccountNumber,
+	//					bankName: bankName,
+	//					transactionId: transactionId,
+	//					createdAt: createdAt,
+	//					shippingFee: parseInt($('#price-freeship-amount')[0].dataset.price)
+	//				};
+	//
+	//				$.ajax({
+	//					url: `${contextPath}/api/customer/order/create`,
+	//					type: 'POST',
+	//					contentType: 'application/json',
+	//					data: JSON.stringify(data),
+	//					success: function (response) {
+	//						toast({
+	//							title: 'Thanh toán',
+	//							message: 'Thanh toán thành công',
+	//							type: 'success',
+	//							duration: 2000
+	//						});
+	//
+	//						setTimeout(() => {
+	//							window.location.href = `${contextPath}/order-detail?orderId=${response.orderId}`;
+	//
+	//							const notificationData = {
+	//								title: 'Đơn hàng mới',
+	//								content: `Có một đơn hàng mới đang chờ xác nhận. order id là ${response.orderId}`,
+	//								type: 'ORDER',
+	//								hyperLink: `/staff/order-details?id=${response.orderId}`
+	//							};
+	//
+	//							$.ajax({
+	//								url: `${contextPath}/api/staff/notification/add`,
+	//								type: 'POST',
+	//								contentType: 'application/json',
+	//								data: JSON.stringify(notificationData),
+	//								success: function (notificationResponse) {
+	//									console.log('Thông báo đã được thêm thành công:', notificationResponse);
+	//								},
+	//								error: function (xhr, error) {
+	//									console.log('Lỗi khi thêm thông báo:', error);
+	//								}
+	//							});
+	//						}, 1000);
+	//					},
+	//					error: function (xhr, error) {
+	//						console.log(error);
+	//					}
+	//				});
+	//
+	//
+	//			} else {
+	//				toast({
+	//					message: 'Đang chờ thanh toán'
+	//				});
+	//			}
+	//		} catch (error) {
+	//			console.log(error);
+	//		}
+	//	}
+	//}
 });

@@ -1,12 +1,6 @@
 package com.biblio.controller.owner;
 
-import com.biblio.dto.request.PromotionInsertRequest;
-import com.biblio.dto.request.PromotionTargetInsertRequest;
-import com.biblio.enumeration.EPromotionStatus;
-import com.biblio.enumeration.EPromotionTargetType;
-import com.biblio.enumeration.EPromotionTemplateType;
 import com.biblio.service.IPromotionService;
-import org.apache.commons.beanutils.BeanUtils;
 
 import javax.inject.Inject;
 import javax.servlet.ServletException;

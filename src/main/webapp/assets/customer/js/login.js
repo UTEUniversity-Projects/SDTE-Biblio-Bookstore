@@ -13,7 +13,6 @@ $(document).ready(() => {
 			const buttonText = loginButton.find('.button-text');
 
 			const loginData = { username, password, rememberMe: rememberMe[0] };
-			console.log(loginData);
 
 			loginButton.prop('disabled', true);
 			buttonText.addClass('hidden');
@@ -25,7 +24,6 @@ $(document).ready(() => {
 				contentType: 'application/json',
 				data: JSON.stringify(loginData),
 				success: function (response) {
-					console.log(response);
 					if (response.status === 'success') {
 						toast({
 							title: 'Đăng nhập',
