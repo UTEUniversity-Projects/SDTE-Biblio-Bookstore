@@ -3,7 +3,7 @@
 <style>
     .error-message {
         color: red;
-        font-size: 0.7em;
+        font-size: 1.0em;
     }
     .tbl-600 {
         @include scrollbar;
